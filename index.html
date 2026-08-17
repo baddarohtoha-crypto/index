@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT Open House Registration</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; margin: 0; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { text-align: center; color: #4f46e5; margin-bottom: 20px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); flex: 1; min-width: 300px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    button { width: 100%; background-color: #4f46e5; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    button:hover { background-color: #4338ca; }
+    button:disabled { background-color: #9ca3af; }
+    .stat-box { background-color: #e0e7ff; text-align: center; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .stat-number { font-size: 28px; font-weight: bold; color: #4f46e5; }
+    .chart-container { position: relative; height: 300px; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>IT Open House Registration</h1>
+
+    <div class="grid">
+      <!-- ฟอร์มลงทะเบียน -->
+      <div class="card">
+        <h2>แบบฟอร์มลงทะเบียน</h2>
+        <form id="regForm">
+          <div class="row">
+            <div class="form-group" style="flex: 0.4;">
+              <label>คำนำหน้า</label>
+              <select id="title" required>
+                <option value="นาย">นาย</option>
+                <option value="นางสาว">นางสาว</option>
+                <option value="เด็กชาย">เด็กชาย</option>
+                <option value="เด็กหญิง">เด็กหญิง</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ชื่อ-นามสกุล</label>
+              <input type="text" id="fullName" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="form-group">
+              <label>เพศ</label>
+              <select id="gender" required>
+                <option value="ชาย">ชาย</option>
+                <option value="หญิง">หญิง</option>
+                <option value="ทางเลือก">ทางเลือก</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>อายุ</label>
+              <input type="number" id="age" min="1" max="99" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="form-group">
+              <label>ระดับชั้น</label>
+              <input type="text" id="level" placeholder="เช่น ม.6" required>
+            </div>
+            <div class="form-group">
+              <label>ชื่อโรงเรียน</label>
+              <input type="text" id="school" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="form-group">
+              <label>เบอร์โทรศัพท์</label>
+              <input type="tel" id="phone" required>
+            </div>
+            <div class="form-group">
+              <label>Line ID</label>
+              <input type="text" id="lineId" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>สาขาวิชาที่สนใจของคณะไอที</label>
+            <select id="major" required style="background-color: #eeefeb; font-weight: bold;">
+              <option value="เทคโนโลยีดิจิทัล">เทคโนโลยีดิจิทัล</option>
+              <option value="เทคโนโลยีสารสนเทศและนวัตกรรมดิจิทัล">เทคโนโลยีสารสนเทศและนวัตกรรมดิจิทัล</option>
+              <option value="ดิจิทัลมีเดียอาร์ต">ดิจิทัลมีเดียอาร์ต</option>
+              <option value="วิศวกรรมความปลอดภัย">วิศวกรรมความปลอดภัย</option>
+              <option value="ไม่สนใจ">ไม่สนใจ</option>
+            </select>
+          </div>
+
+          <button type="submit" id="submitBtn">บันทึกข้อมูล</button>
+        </form>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="card">
+        <h2>Dashboard สรุปสาขาวิชาที่สนใจ</h2>
+        <div class="stat-box">
+          <div>ผู้ลงทะเบียนทั้งหมด</div>
+          <div id="totalCount" class="stat-number">0 คน</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="majorChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // วาง URL จาก Google Apps Script ตรงนี้
+    const GOOGLE_SCRIPT_URL = 'ใส่_URL_WEB_APP_ตรงนี้';
+
+    const majorCounts = {
+      'เทคโนโลยีดิจิทัล': 0,
+      'เทคโนโลยีสารสนเทศและนวัตกรรมดิจิทัล': 0,
+      'ดิจิทัลมีเดียอาร์ต': 0,
+      'วิศวกรรมความปลอดภัย': 0,
+      'ไม่สนใจ': 0
+    };
+
+    let total = 0;
+    let chart;
+
+    window.onload = function() {
+      const ctx = document.getElementById('majorChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(majorCounts),
+          datasets: [{
+            label: 'จำนวนนักเรียน (คน)',
+            data: Object.values(majorCounts),
+            backgroundColor: ['#6366F1', '#3B82F6', '#EC4899', '#10B981', '#9CA3AF']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+    };
+
+    document.getElementById('regForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = 'กำลังบันทึก...';
+
+      const formData = {
+        title: document.getElementById('title').value,
+        fullName: document.getElementById('fullName').value,
+        gender: document.getElementById('gender').value,
+        age: document.getElementById('age').value,
+        level: document.getElementById('level').value,
+        school: document.getElementById('school').value,
+        phone: document.getElementById('phone').value,
+        lineId: document.getElementById('lineId').value,
+        major: document.getElementById('major').value
+      };
+
+      fetch(GOOGLE_SCRIPT_URLhttps://script.google.com/macros/s/AKfycbwnrl_fS5hSeGkmLzSrAyEmVg1Ock2V5yLckdK8R6xKOA77ScYuyizSgMEW2sKCmoyW7A/exec, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      .then(() => {
+        majorCounts[formData.major]++;
+        total++;
+
+        document.getElementById('totalCount').innerText = total + ' คน';
+        if (chart) {
+          chart.data.datasets[0].data = Object.values(majorCounts);
+          chart.update();
+        }
+
+        alert('บันทึกข้อมูลเรียบร้อย!');
+        this.reset();
+      })
+      .catch(err => alert('เกิดข้อผิดพลาดในการบันทึก'))
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerText = 'บันทึกข้อมูล';
+      });
+    });
+  </script>
+</body>
+</html>
